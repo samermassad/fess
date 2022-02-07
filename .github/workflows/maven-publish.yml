@@ -1,0 +1,66 @@
+# This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
+# For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
+
+name: Maven Package
+
+on:
+  push
+  
+env:
+  ACTIONS_CACHE_URL: Test123
+  
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      
+#    - name: Checkout properites repo
+#      uses: actions/checkout@v2
+#      with:
+#        repository: samermassad/cicd
+#        ref: master
+#        path: properties
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
+        settings-path: ${{ github.workspace }} # location for the settings.xml file
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven1-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+            ${{ runner.os }}-maven1-
+    
+    - name: Copy configuration files to project
+      run: wget -O src/main/resources/README.md https://raw.githubusercontent.com/samermassad/cicd/main/README.md
+     
+    - name: Check configuration files
+      run: ls src/main/resources/ && cat src/main/resources/README.md
+    
+    - name: Maven - Clean
+      run: mvn clean --file pom.xml
+      
+    - name: Maven - Ant Run
+      run: mvn antrun:run --file pom.xml
+      
+    - name: Maven - Build
+      run: mvn package -DskipTests --file pom.xml
+
+    - name: Maven - Create Debian Package
+      run: mvn jdeb:jdeb --file pom.xml
+   
+#  test:
+#  push:
+#  deploy:
